@@ -15,7 +15,7 @@ FetchContent_MakeAvailable(googletest)
 
 enable_testing()
 
-add_executable(${PROJECT_NAME} "FileIteratorTest.cpp")
+add_executable(${PROJECT_NAME} "FileIteratorTest.cpp" "HeapTest.cpp")
 
 target_include_directories(${PROJECT_NAME} 
 	PUBLIC "../src"
@@ -25,6 +25,12 @@ target_link_libraries(${PROJECT_NAME}
 	GTest::gtest_main
 	FileSizeExplorer_Lib
 )
+
+add_custom_command(
+        TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+                ${CMAKE_SOURCE_DIR}/test/data.txt
+                ${CMAKE_CURRENT_BINARY_DIR}/data.txt)
 
 include(GoogleTest)
 gtest_discover_tests(${PROJECT_NAME} PROPERTIES TEST_DISCOVERY_TIMEOUT 100)
