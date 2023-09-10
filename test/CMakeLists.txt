@@ -1,4 +1,4 @@
-project(Tree_Test)
+project(FileSizeExplorer_Test)
 
 # GoogleTest requires at least C++14
 set(CMAKE_CXX_STANDARD 14)
@@ -15,7 +15,7 @@ FetchContent_MakeAvailable(googletest)
 
 enable_testing()
 
-add_executable(${PROJECT_NAME} "DirectoryTreeTest.cpp")
+add_executable(${PROJECT_NAME} "FileIteratorTest.cpp")
 
 target_include_directories(${PROJECT_NAME} 
 	PUBLIC "../src"
