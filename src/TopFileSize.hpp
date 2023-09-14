@@ -11,6 +11,9 @@ namespace filesystem
 }
 }
 
+/**
+ * @brief Sorts all the files inside a directory (recursively) in descending order based on file size
+*/
 class TopFileSize
 {
 private:
@@ -43,9 +46,28 @@ private:
 public:
 	TopFileSize(const std::string& root);
 
+	/**
+	 * @brief Convert raw file size to human readable form
+	*/
 	static std::string getRedableSize(size_t sizeInBytes);
 
+	/**
+	 * @brief Print all files in root directory sorted by file size
+	 * Directory traversal is done on a single thread and each file is added into a fixed min-heap.
+	*/
 	void printTopFilesSync();
+
+	/**
+	 * @brief Print all files in root directory sorted by file size
+	 * @fineGrained Use the fine grained locked concurrent heap
+	 * Directory traversal is done on multiple threads and each thread adds the file to a concurrent min-heap.
+	*/
 	void printTopFilesAsync(uint16_t num_threads, bool fineGrained = false);
+
+	/**
+	 * @brief Print all files in root directory sorted by file size
+	 * Directory traversal is done on multiple threads but a single thread adds each file to a fixed min-heap.
+	 * This is the fastest algorithm so far.
+	*/
 	void printTopFilesAsync_v2(uint16_t num_threads);
 };

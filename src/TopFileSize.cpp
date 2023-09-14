@@ -116,7 +116,7 @@ void TopFileSize::printTopFilesAsync_v2(uint16_t num_threads)
 
 void TopFileSize::printTop(HeapType& heap)
 {
-	std::move(heap).consume([](const SizeNamePair& data) {
+	heap.consume([](const SizeNamePair& data) {
 		std::cout << getRedableSize(data.first) << " " << data.second << "\n";
 	});
 }

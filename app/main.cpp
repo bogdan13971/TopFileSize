@@ -4,12 +4,47 @@
 
 int main(int argc, char* argv[])
 {
-	const char* default_path = "D:\\projects\\boost_1_82_0";
+	if (argc == 1 || !strcmp(argv[1], "-h"))
+	{
+		std::cout << 
+			"usage: FileSizeExplorer path mode [num_threads]\n"\
+					"modes: \n"\
+					" 1 sync file iteration - SLOW, single threaded\n"\
+					" 2 async file iteration coarse grained heap - SLOWEST\n"\
+					" 3 async file iteration fine grained heap - SLOW, uses less memory\n"\
+					" 4 async file iteration with sync heap - FASTEST, uses more memory";
+
+		return 0;
+	}
+
+	if (argc > 4)
+	{
+		std::cout << "Too many arguments \n";
+		return -1;
+	}
 
 	const char* path = argv[1];
+	if (argc == 2)
+	{
+		std::cout << "Not enough arguments \n";
+		return -1;
+	}
+
 	int mode = atoi(argv[2]);
 
-	int num_threads = 1;
+	if (mode == 1 && argc >= 2)
+	{
+		std::cout << "Bad arguments for mode 1\n";
+		return -1;
+	}
+
+	if (mode >= 2 && argc == 3) 
+	{
+		std::cout << "Bad arguments for mode \n";
+		return -1;
+	}
+
+	int num_threads = 0;
 	if (argc == 4)
 	{
 		num_threads = atoi(argv[3]);
@@ -17,41 +52,48 @@ int main(int argc, char* argv[])
 
 	std::cout << "Running for \n" <<
 		"path " << path << "\n" <<
-		"mode " << mode << "\n" <<
-		"threads " << num_threads << "\n";
+		"mode " << mode << "\n";
 
-	if (mode >= 2 && argc == 3)
+	if (argc == 4)
 	{
-		std::cout << "Bad argc\n";
-		return -1;
+		std::cout << "threads " << num_threads << "\n";
 	}
 
-	TopFileSize topFileSize{ std::string(argv[1]) };
+	std::cout << "\n";
 
-	switch (mode)
-	{
-	case 1:
-	{
-		topFileSize.printTopFilesSync();
-		break;
+	TopFileSize topFileSize{ path };
+
+	try {
+		switch (mode)
+		{
+		case 1:
+		{
+			topFileSize.printTopFilesSync();
+			break;
+		}
+		case 2:
+		{
+			topFileSize.printTopFilesAsync(num_threads);
+			break;
+		}
+		case 3:
+		{
+			topFileSize.printTopFilesAsync(num_threads, true);
+			break;
+		}
+		case 4:
+		{
+			topFileSize.printTopFilesAsync_v2(num_threads);
+			break;
+		}
+		default:
+			std::cout << "Wrong mode\n";
+			return -1;
+		}
 	}
-	case 2:
+	catch (const std::exception& e)
 	{
-		topFileSize.printTopFilesAsync(atoi(argv[3]));
-		break;
-	}
-	case 3:
-	{
-		topFileSize.printTopFilesAsync(atoi(argv[3]), true);
-		break;
-	}
-	case 4:
-	{
-		topFileSize.printTopFilesAsync_v2(atoi(argv[3]));
-		break;
-	}
-	default:
-		std::cout << "Wrong mode\n";
+		std::cout << "ERROR: \n"<< e.what() << "\n";
 		return -1;
 	}
 

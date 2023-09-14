@@ -9,7 +9,7 @@ bool FileIterator::is_current_path(const boost::filesystem::path& path)
 
 bool FileIterator::is_special_file(const boost::filesystem::path& path)
 {
-	return path.filename().c_str()[0] == '.';
+	return path.filename().c_str()[0] == '.' || path.filename().c_str()[0] == '_';
 }
 
 void FileIterator::sync_iteration(const std::string& root, const FileIterator::FileCB& fileCB)
@@ -72,10 +72,20 @@ void FileIterator::async_iteration_v2(const std::string& root, uint16_t num_thre
 
 	for (auto rdir = rdir_it(root, opts); rdir != rdir_it(); ++rdir)
 	{
-		//skip if in current exe directory or hidden file
-		if (is_current_path(rdir->path())
-			|| is_special_file(rdir->path()))
+		//don't reccur if in current exe directory
+		if (is_current_path(rdir->path()))
 		{
+			rdir.disable_recursion_pending();
+			continue;
+		}
+
+		//don't reccur in hidden directories but skip hidden files
+		if (is_special_file(rdir->path()))
+		{
+			if (boost::filesystem::is_directory(rdir->path()))
+			{
+				rdir.disable_recursion_pending();
+			}
 			continue;
 		}
 
