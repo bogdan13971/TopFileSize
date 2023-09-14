@@ -3,7 +3,9 @@
 #include <array>
 #include <mutex>
 #include <memory>
+#include <vector>
 #include <algorithm>
+#include <functional>
 
 template<class T, size_t N, class Comparer = std::greater<T>>
 class Heap
@@ -28,11 +30,7 @@ protected:
 
 public:
 	Heap()
-		: Heap(std::greater<T>())
-	{}
-
-	Heap(const Comparer& comp) 
-		: comp{comp},
+		: comp{},
 		size{0}
 	{}
 
@@ -112,6 +110,15 @@ public:
 	auto& getContainer()
 	{
 		return heap;
+	}
+
+	virtual void consume(std::function<void(const T&)> consumer) &&
+	{
+		std::sort_heap(heap.begin(), heap.end(), comp);
+		for (size_t i = 0; i < N; i++)
+		{
+			consumer(heap[i]);
+		}
 	}
 };
 

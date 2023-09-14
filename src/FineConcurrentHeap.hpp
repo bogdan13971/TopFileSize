@@ -14,11 +14,7 @@ private:
 
 public:
 	FineConcurrentHeap()
-		: FineConcurrentHeap(std::greater<T>())
-	{}
-
-	FineConcurrentHeap(const Comparer& comp)
-		: Heap<T, N, Comparer>(comp)
+		: Heap<T, N, Comparer>{}
 	{
 		for (size_t i = 0; i < N; i++)
 		{

@@ -13,11 +13,7 @@ private:
 
 public:
 	CoarseConcurrentHeap()
-		: CoarseConcurrentHeap(std::greater<T>())
-	{}
-
-	CoarseConcurrentHeap(const Comparer& comp)
-		: Heap<T, N, Comparer>(comp)
+		: Heap<T, N, Comparer>{}
 	{}
 
 	void push(const T& value) override

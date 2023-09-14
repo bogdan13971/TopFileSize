@@ -2,11 +2,6 @@
 #include <boost/thread.hpp>
 #include <boost/asio.hpp>
 
-FileIterator::FileIterator(const std::string& root, const FileCB& fileCallback)
-	: root{ root }, 
-	fileCallback{ fileCallback }
-{}
-
 bool FileIterator::is_current_path(const boost::filesystem::path& path)
 {
 	return path == boost::filesystem::current_path();
@@ -17,11 +12,9 @@ bool FileIterator::is_special_file(const boost::filesystem::path& path)
 	return path.filename().c_str()[0] == '.';
 }
 
-void FileIterator::recurisve_iteration(const boost::filesystem::path& path)
+void FileIterator::sync_iteration(const std::string& root, const FileIterator::FileCB& fileCB)
 {
-	const auto opts = boost::filesystem::directory_options::skip_permission_denied | boost::filesystem::directory_options::pop_on_error;
- 
-	for (auto rdir = rdir_it(path, opts); rdir != rdir_it(); ++rdir)
+	for (auto rdir = rdir_it(root, opts); rdir != rdir_it(); ++rdir)
 	{
 		//don't reccur if in current exe directory
 		if (is_current_path(rdir->path()))
@@ -40,19 +33,12 @@ void FileIterator::recurisve_iteration(const boost::filesystem::path& path)
 			continue;
 		}
 
-		fileCallback(rdir->path());
+		fileCB(rdir->path());
 	}
 }
 
-
-void FileIterator::sync_iteration()
+void FileIterator::async_iteration(const std::string& root, uint16_t num_threads, const FileIterator::FileCB& fileCB)
 {
-	recurisve_iteration(root);
-}
-
-void FileIterator::async_iteration(uint16_t num_threads)
-{
-	const auto opts = boost::filesystem::directory_options::skip_permission_denied | boost::filesystem::directory_options::pop_on_error;
 	boost::asio::thread_pool pool(num_threads);
 
 	for (auto dir = dir_it(root, opts); dir != dir_it(); ++dir)
@@ -64,12 +50,12 @@ void FileIterator::async_iteration(uint16_t num_threads)
 			continue;
 		}
 
-		fileCallback(dir->path());
+		fileCB(dir->path());
 		if (boost::filesystem::is_directory(dir->path()))
 		{
-			boost::asio::post(pool, [this, path = dir->path()]()
+			boost::asio::post(pool, [root = std::move(dir->path().string()), cb = fileCB]()
 			{
-				recurisve_iteration(path);
+				sync_iteration(root, cb);
 			});
 		}
 	}
@@ -77,11 +63,9 @@ void FileIterator::async_iteration(uint16_t num_threads)
 	pool.join();
 }
 
-void FileIterator::async_iteration_v2(uint16_t num_threads)
+void FileIterator::async_iteration_v2(const std::string& root, uint16_t num_threads, const FileIterator::FileThreadCB& fileCB)
 {
 	const auto INITIAL_CAPACITY = 1'000u;
-	const auto opts = boost::filesystem::directory_options::skip_permission_denied | boost::filesystem::directory_options::pop_on_error;
-	boost::asio::thread_pool pool(num_threads);
 
 	std::vector<boost::filesystem::path> files;
 	files.reserve(INITIAL_CAPACITY);
@@ -98,12 +82,7 @@ void FileIterator::async_iteration_v2(uint16_t num_threads)
 		files.push_back(rdir->path());
 	}
 
-	auto thread_func = [&](size_t start, size_t end) {
-		for (auto i = start; i < end; i++)
-		{
-			fileCallback(files[i]);
-		}
-	};
+	std::vector<std::thread> threads;
 
 	const size_t load = files.size() / num_threads;
 	for (size_t i = 0; i < num_threads; i++)
@@ -115,10 +94,20 @@ void FileIterator::async_iteration_v2(uint16_t num_threads)
 			end_index = files.size();
 		}
 
-		boost::asio::post(pool, [start_index, end_index, thread_func]() {
-			thread_func(start_index, end_index);
+		threads.emplace_back([start_index, end_index, threadId = i, &files, &fileCB]() {
+			for (size_t i = start_index; i < end_index; i++)
+			{
+				fileCB(files[i], threadId);
+			}
 		});
 	}
 
-	pool.join();
+	for (int i = 0; i < num_threads; i++)
+	{
+		threads[i].join();
+	}
 }
+
+const boost::filesystem::directory_options FileIterator::opts = 
+		boost::filesystem::directory_options::skip_permission_denied 
+		| boost::filesystem::directory_options::pop_on_error;
